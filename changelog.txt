@@ -1,2 +1,5 @@
+v2015.6.26
+- Added search ability
+
 v0.0.1
 - Initial version

@@ -1,5 +1,5 @@
 import sys
-import xbmcplugin, xbmcgui, xbmcaddon
+import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 import re, os, time
 import urllib, urllib2
 import json
@@ -18,11 +18,12 @@ FANART = ROOTDIR+"/fanart.jpg"
     
 def CATEGORIES():                    
     addDir('Live & Upcoming','/livestream',100,ICON,FANART)
+    addDir('Search','/search',102,ICON,FANART)
      
 
 
 def LIST_STREAMS():
-        url = 'http://api.new.livestream.com/curated_events?page=1&maxItems=50&'
+        url = 'http://api.new.livestream.com/curated_events?page=1&maxItems=200'
         req = urllib2.Request(url)
         response = urllib2.urlopen(req)                    
         json_source = json.load(response)
@@ -38,6 +39,69 @@ def LIST_STREAMS():
                 name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
 
             addDir(name,'/live_now',101,icon,FANART,event_id,owner_id)
+
+def SEARCH():
+    '''
+    POST http://7kjecl120u-2.algolia.io/1/indexes/*/queries HTTP/1.1
+    Host: 7kjecl120u-2.algolia.io
+    Connection: keep-alive
+    Content-Length: 378
+    X-Algolia-Application-Id: 7KJECL120U
+    Origin: http://livestream.com
+    X-Algolia-API-Key: 98f12273997c31eab6cfbfbe64f99d92
+    User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36
+    Content-type: application/json
+    Accept: */*
+    Referer: http://livestream.com/watch
+    Accept-Encoding: gzip, deflate
+    Accept-Language: en-US,en;q=0.8
+
+    {"requests":[{"indexName":"events","params":"query=summ&hitsPerPage=3"},{"indexName":"accounts","params":"query=summ&hitsPerPage=3"},{"indexName":"videos","params":"query=summ&hitsPerPage=3"},{"indexName":"images","params":"query=summ&hitsPerPage=3"},{"indexName":"statuses","params":"query=summ&hitsPerPage=3"}],"apiKey":"98f12273997c31eab6cfbfbe64f99d92","appID":"7KJECL120U"}
+    '''
+    search_txt = ''
+    dialog = xbmcgui.Dialog()
+    search_txt = dialog.input('Enter search text', type=xbmcgui.INPUT_ALPHANUM)
+
+    if search_txt != '':
+
+        url = 'http://7kjecl120u-2.algolia.io/1/indexes/*/queries'
+        req = urllib2.Request(url)
+        req.addheaders = [ ("Accept", "*/*"),
+                            ("Accept-Language", "en-US,en;q=0.8"),
+                            ("Accept-Encoding", "gzip, deflate"),
+                            ("X-Algolia-Application-Id", "7KJECL120U"),
+                            ("X-Algolia-API-Key", "98f12273997c31eab6cfbfbe64f99d92"),
+                            ("Content-type", "application/json"),
+                            ("Connection", "keep-alive"),
+                            ("Referer", "http://livestream.com/watch"),
+                            ("User-Agent",'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36')]                
+        
+        
+        json_search = '{"requests":[{"indexName":"events","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"accounts","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"videos","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"images","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"statuses","params":"query='+search_txt+'&hitsPerPage=3"}],"apiKey":"98f12273997c31eab6cfbfbe64f99d92","appID":"7KJECL120U"}'
+
+        response = urllib2.urlopen(req,json_search)
+        json_source = json.load(response)
+        response.close()
+
+        #print json_source
+
+        for hits in json_source['results']: 
+            for event in hits['hits']:
+                try:
+                    print event
+                    event_id = str(event['id'])
+                    owner_id = str(event['owner_account_id'])
+                    name = event['full_name'].encode('utf-8')
+                    #icon = event['logo']['thumbnail']['url']
+                    icon = event['logo']['large']['url']
+                    
+                    #if event['in_progress']:
+                    #name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+
+                    addDir(name,'/live_now',101,icon,FANART,event_id,owner_id)
+                except:
+                    pass
+
             
 
 
@@ -169,7 +233,8 @@ print "Owner ID:"+str(owner_id)
 
 if mode==None or url==None or len(url)<1:
         #print ""                
-        CATEGORIES()        
+        CATEGORIES()  
+
   
 elif mode==100:
         #print "GET_YEAR MODE!"
@@ -177,5 +242,7 @@ elif mode==100:
 elif mode==101:
         #print "GET_YEAR MODE!"
         GET_STREAM(owner_id,event_id)
+elif mode==102:
+        SEARCH()
 
 xbmcplugin.endOfDirectory(addon_handle)
