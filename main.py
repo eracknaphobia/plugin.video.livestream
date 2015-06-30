@@ -1,8 +1,10 @@
 import sys
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 import re, os, time
+from datetime import datetime, timedelta
 import urllib, urllib2
 import json
+import calendar
 
 
 #import librtmp
@@ -14,6 +16,7 @@ local_string = xbmcaddon.Addon(id='plugin.video.livestream').getLocalizedString
 ROOTDIR = xbmcaddon.Addon(id='plugin.video.livestream').getAddonInfo('path')
 ICON = ROOTDIR+"/icon.png"
 FANART = ROOTDIR+"/fanart.jpg"
+IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12F70 Safari/600.1.4'
 
     
 def CATEGORIES():                    
@@ -21,24 +24,59 @@ def CATEGORIES():
     addDir('Search','/search',102,ICON,FANART)
      
 
-
 def LIST_STREAMS():
-        url = 'http://api.new.livestream.com/curated_events?page=1&maxItems=200'
-        req = urllib2.Request(url)
-        response = urllib2.urlopen(req)                    
-        json_source = json.load(response)
-        response.close()
+    live_streams = []
+    upcoming_streams = []
+    url = 'http://api.new.livestream.com/curated_events?page=1&maxItems=200'
+    req = urllib2.Request(url)
+    req.add_header('User-Agent', IPHONE_UA)              
+    response = urllib2.urlopen(req)      
+    json_source = json.load(response)
+    response.close()
 
-        for event in json_source['data']:            
-            event_id = str(event['id'])
-            owner_id = str(event['owner_account_id'])
-            name = event['full_name'].encode('utf-8')
-            icon = event['logo']['url']
-            
-            if event['in_progress']:
-                name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+    for event in json_source['data']:            
+        event_id = str(event['id'])
+        owner_id = str(event['owner_account_id'])
 
-            addDir(name,'/live_now',101,icon,FANART,event_id,owner_id)
+        owner_name = name = event['owner']['full_name'].encode('utf-8')
+        full_name = event['full_name'].encode('utf-8')
+        name = owner_name + ' - ' + full_name
+        icon = event['logo']['url']
+        
+        if event['in_progress']:
+            name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+            live_streams.append([name,icon,event_id,owner_id])
+        else:
+            #2013-03-26T14:28:00.000Z
+            pattern = "%Y-%m-%dT%H:%M:%S.000Z"
+            start_time = str(event['start_time'])
+            end_time =  str(event['end_time'])
+            current_time =  datetime.utcnow().strftime(pattern) 
+            my_time = int(time.mktime(time.strptime(current_time, pattern)))             
+            event_end = int(time.mktime(time.strptime(end_time, pattern)))
+
+            if my_time < event_end:
+                start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))
+                start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
+                name = name + ' ' + start_date
+                upcoming_streams.append([name,icon,event_id,owner_id])
+
+    
+    for stream in  sorted(live_streams, key=lambda tup: tup[0]):
+        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3])            
+
+
+    for stream in  sorted(upcoming_streams, key=lambda tup: tup[0]):
+        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3])            
+    #addDir(name,'/live_now',101,icon,FANART,event_id,owner_id)
+
+
+def utc_to_local(utc_dt):
+    # get integer timestamp to avoid precision lost
+    timestamp = calendar.timegm(utc_dt.timetuple())
+    local_dt = datetime.fromtimestamp(timestamp)
+    assert utc_dt.resolution >= timedelta(microseconds=1)
+    return local_dt.replace(microsecond=utc_dt.microsecond)
 
 def SEARCH():
     '''
@@ -83,8 +121,6 @@ def SEARCH():
         json_source = json.load(response)
         response.close()
 
-        #print json_source
-
         for hits in json_source['results']: 
             for event in hits['hits']:
                 try:
@@ -92,6 +128,7 @@ def SEARCH():
                     event_id = str(event['id'])
                     owner_id = str(event['owner_account_id'])
                     name = event['full_name'].encode('utf-8')
+                    name = event['owner_account_full_name'].encode('utf-8') + ' - ' + name
                     #icon = event['logo']['thumbnail']['url']
                     icon = event['logo']['large']['url']
                     
@@ -105,10 +142,11 @@ def SEARCH():
             
 
 
-def GET_STREAM(owner_id,event_id):
+def GET_STREAM(owner_id,event_id,icon):
     url = 'http://api.new.livestream.com/accounts/'+owner_id+'/events/'+event_id+'/viewing_info'
     try:
         req = urllib2.Request(url)       
+        req.add_header('User-Agent', IPHONE_UA)
         response = urllib2.urlopen(req)                    
         json_source = json.load(response)
         response.close()
@@ -132,7 +170,7 @@ def GET_STREAM(owner_id,event_id):
             if '.m3u8' in temp_url:
                 print temp_url
                 print desc                                
-                addLink(name +' ('+desc+')',temp_url+'|Cookie='+cookie, name +' ('+desc+')', FANART)
+                addLink(name +' ('+desc+')',temp_url+'|Cookie='+cookie+'&User-Agent='+IPHONE_UA, name +' ('+desc+')', icon)
             else:
                 desc = ''
                 start = temp_url.find('RESOLUTION=')
@@ -163,7 +201,7 @@ def addLink(name,url,title,iconimage,fanart=None):
 
 def addDir(name,url,mode,iconimage,fanart=None,event_id=None,owner_id=None):       
     ok=True
-    u=sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
+    u=sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)+"&icon="+urllib.quote_plus(iconimage)
     if event_id != None:
         u = u+"&event_id="+urllib.quote_plus(event_id)
     if owner_id != None:
@@ -201,6 +239,7 @@ name=None
 mode=None
 event_id=None
 owner_id=None
+icon = None
 
 try:
     url=urllib.unquote_plus(params["url"])
@@ -222,6 +261,10 @@ try:
     owner_id=urllib.unquote_plus(params["owner_id"])
 except:
     pass
+try:
+    icon=urllib.unquote_plus(params["icon"])
+except:
+    pass
 
 print "Mode: "+str(mode)
 #print "URL: "+str(url)
@@ -241,8 +284,9 @@ elif mode==100:
         LIST_STREAMS()
 elif mode==101:
         #print "GET_YEAR MODE!"
-        GET_STREAM(owner_id,event_id)
+        GET_STREAM(owner_id,event_id,icon)
 elif mode==102:
         SEARCH()
 
-xbmcplugin.endOfDirectory(addon_handle)
+#xbmcplugin.endOfDirectory(addon_handle)
+xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
