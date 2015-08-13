@@ -6,9 +6,6 @@ import urllib, urllib2
 import json
 import calendar
 
-
-#import librtmp
-
 addon_handle = int(sys.argv[1])
 
 #Localisation
@@ -17,17 +14,18 @@ ROOTDIR = xbmcaddon.Addon(id='plugin.video.livestream').getAddonInfo('path')
 ICON = ROOTDIR+"/icon.png"
 FANART = ROOTDIR+"/fanart.jpg"
 IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12F70 Safari/600.1.4'
-
+SEARCH_HITS = '25'
     
 def CATEGORIES():                    
     addDir('Live & Upcoming','/livestream',100,ICON,FANART)
-    addDir('Search','/search',102,ICON,FANART)
+    addDir('Search Live','/search',102,ICON,FANART)
+    addDir('Search Archive','/search',103,ICON,FANART)
      
 
 def LIST_STREAMS():
     live_streams = []
     upcoming_streams = []
-    url = 'http://api.new.livestream.com/curated_events?page=1&maxItems=200'
+    url = 'http://api.new.livestream.com/curated_events?page=1&maxItems=500'
     req = urllib2.Request(url)
     req.add_header('User-Agent', IPHONE_UA)              
     response = urllib2.urlopen(req)      
@@ -42,33 +40,47 @@ def LIST_STREAMS():
         full_name = event['full_name'].encode('utf-8')
         name = owner_name + ' - ' + full_name
         icon = event['logo']['url']
+
+        #2013-03-26T14:28:00.000Z
+        pattern = "%Y-%m-%dT%H:%M:%S.000Z"
+        start_time = str(event['start_time'])
+        end_time =  str(event['end_time'])
+        current_time =  datetime.utcnow().strftime(pattern) 
+        my_time = int(time.mktime(time.strptime(current_time, pattern)))             
+        event_end = int(time.mktime(time.strptime(end_time, pattern)))
+
+        length = 0
+        try:
+            length = int(item['duration'])
+        except:        
+            pass
+
+        print start_time         
+        aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
+        print aired
+
+        info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
         
         if event['in_progress']:
             name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
-            live_streams.append([name,icon,event_id,owner_id])
+            live_streams.append([name,icon,event_id,owner_id,info])
         else:
-            #2013-03-26T14:28:00.000Z
-            pattern = "%Y-%m-%dT%H:%M:%S.000Z"
-            start_time = str(event['start_time'])
-            end_time =  str(event['end_time'])
-            current_time =  datetime.utcnow().strftime(pattern) 
-            my_time = int(time.mktime(time.strptime(current_time, pattern)))             
-            event_end = int(time.mktime(time.strptime(end_time, pattern)))
 
-            if my_time < event_end:
-                start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))
+            if my_time < event_end:                
+                start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))    
                 start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
-                name = name + ' ' + start_date
-                upcoming_streams.append([name,icon,event_id,owner_id])
+                info['plot'] = "Starting at: "+str(start_date)
+                #name = name + ' ' + start_date
+                upcoming_streams.append([name,icon,event_id,owner_id,info])
 
     
-    for stream in  sorted(live_streams, key=lambda tup: tup[0]):
-        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3])            
+    for stream in  sorted(live_streams, key=lambda tup: tup[0]):        
+        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3],stream[4])            
 
 
     for stream in  sorted(upcoming_streams, key=lambda tup: tup[0]):
-        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3])            
-    #addDir(name,'/live_now',101,icon,FANART,event_id,owner_id)
+        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3],stream[4])            
+    
 
 
 def utc_to_local(utc_dt):
@@ -100,6 +112,8 @@ def SEARCH():
     dialog = xbmcgui.Dialog()
     search_txt = dialog.input('Enter search text', type=xbmcgui.INPUT_ALPHANUM)
 
+    json_source = ''
+
     if search_txt != '':
 
         url = 'http://7kjecl120u-2.algolia.io/1/indexes/*/queries'
@@ -115,12 +129,20 @@ def SEARCH():
                             ("User-Agent",'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36')]                
         
         
-        json_search = '{"requests":[{"indexName":"events","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"accounts","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"videos","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"images","params":"query='+search_txt+'&hitsPerPage=3"},{"indexName":"statuses","params":"query='+search_txt+'&hitsPerPage=3"}],"apiKey":"98f12273997c31eab6cfbfbe64f99d92","appID":"7KJECL120U"}'
+        json_search = '{"requests":[{"indexName":"events","params":"query='+search_txt+'&hitsPerPage='+SEARCH_HITS+'"},{"indexName":"accounts","params":"query='+search_txt+'&hitsPerPage='+SEARCH_HITS+'"},{"indexName":"videos","params":"query='+search_txt+'&hitsPerPage='+SEARCH_HITS+'"},{"indexName":"images","params":"query='+search_txt+'&hitsPerPage='+SEARCH_HITS+'"},{"indexName":"statuses","params":"query='+search_txt+'&hitsPerPage='+SEARCH_HITS+'"}],"apiKey":"98f12273997c31eab6cfbfbe64f99d92","appID":"7KJECL120U"}'
 
         response = urllib2.urlopen(req,json_search)
         json_source = json.load(response)
+        #print json_source
         response.close()
 
+
+    return json_source
+
+
+def SEARCH_LIVE():
+    json_source = SEARCH()
+    if json_source != '':
         for hits in json_source['results']: 
             for event in hits['hits']:
                 try:
@@ -132,34 +154,99 @@ def SEARCH():
                     #icon = event['logo']['thumbnail']['url']
                     icon = event['logo']['large']['url']
                     
-                    #if event['in_progress']:
-                    #name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+                    start_time = str(event['start_time'])                        
+                    duration = 0
+                    try:
+                        duration = int(item['duration'])
+                    except:        
+                        pass
+
+                    print start_time         
+                    aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
+                    print aired
+
+                    info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
 
                     addDir(name,'/live_now',101,icon,FANART,event_id,owner_id)
                 except:
                     pass
+                
 
+def SEARCH_ARCHIVE():
+    json_source = SEARCH()
+    if json_source != '':
+        for hits in json_source['results']: 
+            for event in hits['hits']:       
+                try:         
+                    owner_id = str(event['id'])
+                    url = 'http://new.livestream.com/api/accounts/'+owner_id
+                    json_source = GET_JSON_FILE(url)
+                    #Load all past events            
+                    for past_event in json_source['past_events']['data']:            
+                        name = past_event['full_name']
+                        icon = past_event['logo']['url']
+                        event_id = str(past_event['id'])
+
+                        start_time = str(past_event['start_time'])                        
+                        duration = 0
+                        try:
+                            duration = int(item['duration'])
+                        except:        
+                            pass
+
+                        print start_time         
+                        aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
+                        print aired
+
+                        info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
+                        
+                        addDir(name,'/archive',101,icon,FANART,event_id,owner_id,info)
+                except:
+                    pass
             
 
+def GET_JSON_FILE(url):
+    req = urllib2.Request(url) 
+    req.add_header('User-Agent', ' Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.115 Safari/537.36')     
+    response = urllib2.urlopen(req)            
+    json_source = json.load(response)
+    response.close()  
 
-def GET_STREAM(owner_id,event_id,icon):
-    url = 'http://api.new.livestream.com/accounts/'+owner_id+'/events/'+event_id+'/viewing_info'
+    return json_source
+
+
+def GET_LIVE_STREAM(owner_id,event_id,icon):    
     try:
+        url = 'http://livestream.com/api/accounts/'+owner_id+'/events/'+event_id+'/feed.json?&filter=video'                
         req = urllib2.Request(url)       
         req.add_header('User-Agent', IPHONE_UA)
         response = urllib2.urlopen(req)                    
         json_source = json.load(response)
         response.close()
+        m3u8_url = json_source['data'][0]['data']['m3u8_url']
+    except:
+        url = 'http://api.new.livestream.com/accounts/'+owner_id+'/events/'+event_id+'/viewing_info'
+        req = urllib2.Request(url)       
+        req.add_header('User-Agent', IPHONE_UA)
+        try:
+            response = urllib2.urlopen(req)                    
+            json_source = json.load(response)
+            response.close()        
+            m3u8_url = json_source['streamInfo']['m3u8_url']
+        except:
+            pass
 
-        #print json_source
-
-        m3u8_url = json_source['streamInfo']['m3u8_url']
+    try:
         print "M3U8!!!" + m3u8_url
         req = urllib2.Request(m3u8_url)
         response = urllib2.urlopen(req)                    
         master = response.read()
         response.close()
-        cookie =  urllib.quote(response.info().getheader('Set-Cookie'))
+        cookie = ''
+        try:
+            cookie =  urllib.quote(response.info().getheader('Set-Cookie'))
+        except:
+            pass
 
         print cookie
         print master
@@ -169,8 +256,12 @@ def GET_STREAM(owner_id,event_id,icon):
         for temp_url in line:
             if '.m3u8' in temp_url:
                 print temp_url
-                print desc                                
-                addLink(name +' ('+desc+')',temp_url+'|Cookie='+cookie+'&User-Agent='+IPHONE_UA, name +' ('+desc+')', icon)
+                print desc                  
+                temp_url = temp_url+'|User-Agent='+IPHONE_UA              
+                if cookie != '':
+                    temp_url = temp_url + '&Cookie='+cookie
+
+                addLink(name +' ('+desc+')',temp_url, name +' ('+desc+')', icon)
             else:
                 desc = ''
                 start = temp_url.find('RESOLUTION=')
@@ -182,7 +273,6 @@ def GET_STREAM(owner_id,event_id,icon):
                     desc = "Audio"
     except:
         pass
-
     
 
 def addLink(name,url,title,iconimage,fanart=None):
@@ -199,7 +289,7 @@ def addLink(name,url,title,iconimage,fanart=None):
     return ok
 
 
-def addDir(name,url,mode,iconimage,fanart=None,event_id=None,owner_id=None):       
+def addDir(name,url,mode,iconimage,fanart=None,event_id=None,owner_id=None,info=None):       
     ok=True
     u=sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)+"&icon="+urllib.quote_plus(iconimage)
     if event_id != None:
@@ -212,7 +302,12 @@ def addDir(name,url,mode,iconimage,fanart=None,event_id=None,owner_id=None):
         liz.setProperty('fanart_image', fanart)
     else:
         liz.setProperty('fanart_image', FANART)
+
+    if info != None:
+        liz.setInfo( type="Video", infoLabels=info)
+
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True)    
+    xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
     return ok
 
 def get_params():
@@ -277,16 +372,16 @@ print "Owner ID:"+str(owner_id)
 if mode==None or url==None or len(url)<1:
         #print ""                
         CATEGORIES()  
-
-  
-elif mode==100:
-        #print "GET_YEAR MODE!"
+elif mode==100:        
         LIST_STREAMS()
-elif mode==101:
-        #print "GET_YEAR MODE!"
-        GET_STREAM(owner_id,event_id,icon)
+elif mode==101:        
+        GET_LIVE_STREAM(owner_id,event_id,icon)
 elif mode==102:
-        SEARCH()
+        SEARCH_LIVE()
+elif mode==103:
+        SEARCH_ARCHIVE()
 
-#xbmcplugin.endOfDirectory(addon_handle)
-xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+if mode == 100:
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+else:
+    xbmcplugin.endOfDirectory(addon_handle)
