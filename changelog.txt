@@ -1,7 +1,10 @@
+v2015.8.28
+- Changed stream quality selection to dialog box
+
 v2015.8.13
 - Added Search Archive Feature
 - Label videos as episodes and gave them air dates where applicable
-- Imporved stream fetching ability
+- Improved stream fetching ability
 
 v2015.6.30
 - Made titles more descriptive
