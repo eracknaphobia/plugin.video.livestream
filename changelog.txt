@@ -1,5 +1,5 @@
-v2015.8.29
-- Bug Fix for time
+v2015.8.31
+- Attempt to fix live search results playing wrong streams
 
 v2015.8.28
 - Changed stream quality selection to dialog box

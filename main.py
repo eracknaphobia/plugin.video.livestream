@@ -32,49 +32,46 @@ def LIST_STREAMS():
     json_source = json.load(response)
     response.close()
 
-    for event in json_source['data']: 
-        try:           
-            event_id = str(event['id'])
-            owner_id = str(event['owner_account_id'])
+    for event in json_source['data']:            
+        event_id = str(event['id'])
+        owner_id = str(event['owner_account_id'])
 
-            owner_name = name = event['owner']['full_name'].encode('utf-8')
-            full_name = event['full_name'].encode('utf-8')
-            name = owner_name + ' - ' + full_name
-            icon = event['logo']['url']
+        owner_name = name = event['owner']['full_name'].encode('utf-8')
+        full_name = event['full_name'].encode('utf-8')
+        name = owner_name + ' - ' + full_name
+        icon = event['logo']['url']
 
-            #2013-03-26T14:28:00.000Z
-            pattern = "%Y-%m-%dT%H:%M:%S.000Z"
-            start_time = str(event['start_time'])
-            end_time =  str(event['end_time'])
-            current_time =  datetime.utcnow().strftime(pattern) 
-            my_time = int(time.mktime(time.strptime(current_time, pattern)))             
-            event_end = int(time.mktime(time.strptime(end_time, pattern)))
+        #2013-03-26T14:28:00.000Z
+        pattern = "%Y-%m-%dT%H:%M:%S.000Z"
+        start_time = str(event['start_time'])
+        end_time =  str(event['end_time'])
+        current_time =  datetime.utcnow().strftime(pattern) 
+        my_time = int(time.mktime(time.strptime(current_time, pattern)))             
+        event_end = int(time.mktime(time.strptime(end_time, pattern)))
 
-            length = 0
-            try:
-                length = int(item['duration'])
-            except:        
-                pass
-
-            print start_time         
-            aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
-            print aired
-
-            info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
-            
-            if event['in_progress']:
-                name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
-                live_streams.append([name,icon,event_id,owner_id,info])
-            else:
-
-                if my_time < event_end:                
-                    start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))    
-                    start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
-                    info['plot'] = "Starting at: "+str(start_date)
-                    #name = name + ' ' + start_date
-                    upcoming_streams.append([name,icon,event_id,owner_id,info])
-        except:
+        length = 0
+        try:
+            length = int(item['duration'])
+        except:        
             pass
+
+        print start_time         
+        aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
+        print aired
+
+        info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
+        
+        if event['in_progress']:
+            name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+            live_streams.append([name,icon,event_id,owner_id,info])
+        else:
+
+            if my_time < event_end:                
+                start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))    
+                start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
+                info['plot'] = "Starting at: "+str(start_date)
+                #name = name + ' ' + start_date
+                upcoming_streams.append([name,icon,event_id,owner_id,info])
 
     
     for stream in  sorted(live_streams, key=lambda tup: tup[0]):        
@@ -219,18 +216,10 @@ def GET_JSON_FILE(url):
     return json_source
 
 
-def GET_LIVE_STREAM(owner_id,event_id,icon): 
+def GET_STREAM(owner_id,event_id,icon): 
     stream_url = []
     stream_title = [] 
     try:
-        url = 'http://livestream.com/api/accounts/'+owner_id+'/events/'+event_id+'/feed.json?&filter=video'                
-        req = urllib2.Request(url)       
-        req.add_header('User-Agent', IPHONE_UA)
-        response = urllib2.urlopen(req)                    
-        json_source = json.load(response)
-        response.close()
-        m3u8_url = json_source['data'][0]['data']['m3u8_url']
-    except:
         url = 'http://api.new.livestream.com/accounts/'+owner_id+'/events/'+event_id+'/viewing_info'
         req = urllib2.Request(url)       
         req.add_header('User-Agent', IPHONE_UA)
@@ -238,9 +227,17 @@ def GET_LIVE_STREAM(owner_id,event_id,icon):
             response = urllib2.urlopen(req)                    
             json_source = json.load(response)
             response.close()        
-            m3u8_url = json_source['streamInfo']['m3u8_url']
+            m3u8_url = json_source['streamInfo']['m3u8_url']            
         except:
-            pass
+            url = 'http://livestream.com/api/accounts/'+owner_id+'/events/'+event_id+'/feed.json?&filter=video'                
+            req = urllib2.Request(url)       
+            req.add_header('User-Agent', IPHONE_UA)
+            response = urllib2.urlopen(req)                    
+            json_source = json.load(response)
+            response.close()
+            m3u8_url = json_source['data'][0]['data']['m3u8_url']
+    except:
+        pass       
 
     try:
         print "M3U8!!!" + m3u8_url
@@ -285,7 +282,7 @@ def GET_LIVE_STREAM(owner_id,event_id,icon):
     return stream_url, stream_title
     
 def STREAM_QUALITY_SELECT(owner_id,event_id,icon):
-    stream_url, stream_title = GET_LIVE_STREAM(owner_id,event_id,icon)
+    stream_url, stream_title = GET_STREAM(owner_id,event_id,icon)
 
     if len(stream_title) > 0:
         dialog = xbmcgui.Dialog() 
@@ -419,7 +416,7 @@ if mode==None or url==None or len(url)<1:
 elif mode==100:        
         LIST_STREAMS()
 elif mode==101:        
-        GET_LIVE_STREAM(owner_id,event_id,icon)
+        GET_STREAM(owner_id,event_id,icon)
 elif mode==102:
         SEARCH_LIVE()
 elif mode==103:
