@@ -32,46 +32,49 @@ def LIST_STREAMS():
     json_source = json.load(response)
     response.close()
 
-    for event in json_source['data']:            
-        event_id = str(event['id'])
-        owner_id = str(event['owner_account_id'])
+    for event in json_source['data']: 
+        try:           
+            event_id = str(event['id'])
+            owner_id = str(event['owner_account_id'])
 
-        owner_name = name = event['owner']['full_name'].encode('utf-8')
-        full_name = event['full_name'].encode('utf-8')
-        name = owner_name + ' - ' + full_name
-        icon = event['logo']['url']
+            owner_name = name = event['owner']['full_name'].encode('utf-8')
+            full_name = event['full_name'].encode('utf-8')
+            name = owner_name + ' - ' + full_name
+            icon = event['logo']['url']
 
-        #2013-03-26T14:28:00.000Z
-        pattern = "%Y-%m-%dT%H:%M:%S.000Z"
-        start_time = str(event['start_time'])
-        end_time =  str(event['end_time'])
-        current_time =  datetime.utcnow().strftime(pattern) 
-        my_time = int(time.mktime(time.strptime(current_time, pattern)))             
-        event_end = int(time.mktime(time.strptime(end_time, pattern)))
+            #2013-03-26T14:28:00.000Z
+            pattern = "%Y-%m-%dT%H:%M:%S.000Z"
+            start_time = str(event['start_time'])
+            end_time =  str(event['end_time'])
+            current_time =  datetime.utcnow().strftime(pattern) 
+            my_time = int(time.mktime(time.strptime(current_time, pattern)))             
+            event_end = int(time.mktime(time.strptime(end_time, pattern)))
 
-        length = 0
-        try:
-            length = int(item['duration'])
-        except:        
+            length = 0
+            try:
+                length = int(item['duration'])
+            except:        
+                pass
+
+            print start_time         
+            aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
+            print aired
+
+            info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
+            
+            if event['in_progress']:
+                name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+                live_streams.append([name,icon,event_id,owner_id,info])
+            else:
+
+                if my_time < event_end:                
+                    start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))    
+                    start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
+                    info['plot'] = "Starting at: "+str(start_date)
+                    #name = name + ' ' + start_date
+                    upcoming_streams.append([name,icon,event_id,owner_id,info])
+        except:
             pass
-
-        print start_time         
-        aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
-        print aired
-
-        info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
-        
-        if event['in_progress']:
-            name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
-            live_streams.append([name,icon,event_id,owner_id,info])
-        else:
-
-            if my_time < event_end:                
-                start_date = datetime.fromtimestamp(time.mktime(time.strptime(start_time, pattern)))    
-                start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
-                info['plot'] = "Starting at: "+str(start_date)
-                #name = name + ' ' + start_date
-                upcoming_streams.append([name,icon,event_id,owner_id,info])
 
     
     for stream in  sorted(live_streams, key=lambda tup: tup[0]):        
