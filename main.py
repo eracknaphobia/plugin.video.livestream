@@ -96,8 +96,8 @@ def utc_to_local(utc_dt):
 
 def SEARCH():
     '''
-    POST http://7kjecl120u-2.algolia.io/1/indexes/*/queries HTTP/1.1
-    Host: 7kjecl120u-2.algolia.io
+    POST https://7kjecl120u-3.algolia.io/1/indexes/*/queries HTTP/1.1
+    Host: 7kjecl120u-3.algolia.io
     Connection: keep-alive
     Content-Length: 378
     X-Algolia-Application-Id: 7KJECL120U
@@ -119,7 +119,7 @@ def SEARCH():
 
     if search_txt != '':
 
-        url = 'http://7kjecl120u-2.algolia.io/1/indexes/*/queries'
+        url = 'https://7kjecl120u-3.algolia.io/1/indexes/*/queries'
         req = urllib2.Request(url)
         req.addheaders = [ ("Accept", "*/*"),
                             ("Accept-Language", "en-US,en;q=0.8"),
