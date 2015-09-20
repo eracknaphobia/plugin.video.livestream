@@ -1,3 +1,6 @@
+v2015.9.19
+- Fix bad url for searches
+
 v2015.9.1
 - Added back bug fix in v2015.8.28 that i accidentilty removed
 
