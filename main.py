@@ -8,17 +8,27 @@ import calendar
 
 addon_handle = int(sys.argv[1])
 
+#Settings
+settings = xbmcaddon.Addon(id='plugin.video.livestream')
+USERNAME = str(settings.getSetting(id="username"))
+PASSWORD = str(settings.getSetting(id="password"))
+
 #Localisation
 local_string = xbmcaddon.Addon(id='plugin.video.livestream').getLocalizedString
 ROOTDIR = xbmcaddon.Addon(id='plugin.video.livestream').getAddonInfo('path')
 ICON = ROOTDIR+"/icon.png"
 FANART = ROOTDIR+"/fanart.jpg"
 IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_4 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12F70 Safari/600.1.4'
+LIVESTREAM_UA = 'Livestream/3.8.12/Nemiroff (iPhone; iOS 8.4; Scale/2.00)'
 SEARCH_HITS = '25'
     
+
+
+
 def CATEGORIES():                    
     addDir('Live & Upcoming','/livestream',100,ICON,FANART)
     addDir('Search','/search',102,ICON,FANART)
+    addDir('My Channels','/login',150,ICON,FANART)
     #addDir('Search Live','/search',102,ICON,FANART)
     #addDir('Search Archive','/search',103,ICON,FANART)
      
@@ -392,6 +402,112 @@ def GET_ACCOUNT_STREAMS(owner_id):
         info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
         addStream(name,'/live_now',name,icon,FANART,event_id,owner_id,info)
 
+def LOGIN():
+    #Check if username and password is provided
+    if USERNAME == '':
+        global USERNAME
+        dialog = xbmcgui.Dialog()
+        USERNAME = dialog.input('Please enter your username', type=xbmcgui.INPUT_ALPHANUM)        
+        settings.setSetting(id='username', value=USERNAME)
+
+    if PASSWORD == '':
+        global PASSWORD
+        dialog = xbmcgui.Dialog()
+        PASSWORD = dialog.input('Please enter your password', type=xbmcgui.INPUT_ALPHANUM, option=xbmcgui.ALPHANUM_HIDE_INPUT)
+        settings.setSetting(id='password', value=PASSWORD)
+
+    if USERNAME != '' and PASSWORD != '':
+        
+        url = 'https://oauth.new.livestream.com/oauth/access_token/'
+        req = urllib2.Request(url)
+        req.add_header("Accept", "*/*")
+        req.add_header("Origin", "http://livestream.com")
+        req.add_header("Accept-Language", "en-US,en;q=0.8")
+        req.add_header("Accept-Encoding", "gzip, deflate")
+        req.add_header("X-Algolia-Application-Id", "7KJECL120U")
+        req.add_header("X-Algolia-API-Key", "98f12273997c31eab6cfbfbe64f99d92")
+        req.add_header("Content-type", "application/x-www-form-urlencoded; charset=utf-8")
+        req.add_header("Connection", "keep-alive")
+        req.add_header("User-Agent", LIVESTREAM_UA)                
+        
+        
+        body = urllib.urlencode({'grant_type' : 'password',
+                                 'username' : USERNAME,
+                                 'password' : PASSWORD,
+                                 'client_id' : '289ef33f7caa0c346c3025ff518ada99',
+                                 'client_secret' : '511901d55797644f2bf78716518adaa3'
+                                 })
+
+        response = urllib2.urlopen(req, body)
+        json_source = json.load(response)    
+        response.close()
+
+        access_token = json_source['access_token']
+        user_id = str(json_source['user_data']['id'])
+        
+        
+        req = urllib2.Request('https://api.new.livestream.com/accounts/'+user_id+'/following_events?&older=50&newer=50')
+        req.add_header("Accept", "*/*")
+        req.add_header("Accept-Language", "en-US,en;q=1")
+        req.add_header("Accept-Encoding", "gzip, deflate")
+        #('If-None-Match', 'W/"xyKvCBoIJXQ9Tu6ij5hL1g=='),                                                
+        #("Connection", "keep-alive"),
+        req.add_header("Authorization", "Bearer "+access_token)
+        req.add_header("User-Agent", LIVESTREAM_UA)
+        
+        response = urllib2.urlopen(req)                    
+        json_source = json.load(response)    
+        response.close()
+        
+        #print json_source
+        live_streams = []
+        archived_streams = []
+        for event in json_source['data']: 
+            try:           
+                event_id = str(event['id'])
+                owner_id = str(event['owner_account_id'])
+
+                owner_name = name = event['owner']['full_name'].encode('utf-8')
+                full_name = event['full_name'].encode('utf-8')
+                name = owner_name + ' - ' + full_name
+                icon = event['logo']['url']
+
+                #2013-03-26T14:28:00.000Z
+                pattern = "%Y-%m-%dT%H:%M:%S.000Z"
+                start_time = str(event['start_time'])
+                end_time =  str(event['end_time'])
+                current_time =  datetime.utcnow().strftime(pattern) 
+                my_time = int(time.mktime(time.strptime(current_time, pattern)))             
+                event_end = int(time.mktime(time.strptime(end_time, pattern)))
+
+                length = 0
+                try:
+                    length = int(item['duration'])
+                except:        
+                    pass
+
+                print name
+                print start_time         
+                aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
+                print aired
+
+                info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
+                
+                if event['in_progress']:
+                    name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
+                    live_streams.append([name,icon,event_id,owner_id,info])
+                else:               
+                    archived_streams.append([name,icon,event_id,owner_id,info])
+            except:
+                pass
+
+        
+        for stream in  sorted(live_streams, key=lambda tup: tup[0]):        
+            addStream(stream[0],'/live_now',stream[0],stream[1],FANART,stream[2],stream[3],stream[4])    
+
+        for stream in  sorted(archived_streams, key=lambda tup: tup[0]):
+            addStream(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3],stream[4])   
+
 
 def addStream(name,link_url,title,iconimage,fanart=None,event_id=None,owner_id=None,info=None):
     ok=True
@@ -520,6 +636,8 @@ elif mode==104:
         STREAM_QUALITY_SELECT(owner_id,event_id,icon)
 elif mode==105:
     GET_ACCOUNT_STREAMS(owner_id)
+elif mode==150:
+    LOGIN()
 
 if mode == 100:
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
