@@ -369,8 +369,8 @@ def GET_ACCOUNT_STREAMS(owner_id):
     url = 'https://api.new.livestream.com/accounts/'+owner_id    
     json_source = GET_JSON_FILE(url)
     
-
-    addDir('[B][I][COLOR='+SECTION_COLOR+']Live / Upcoming Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
+    upcoming_streams = []
+    addDir('[B][I][COLOR='+SECTION_COLOR+']Upcoming & Live Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
     for event in json_source['upcoming_events']['data']:         
         name = event['full_name'].encode('utf-8')
         icon = None
@@ -394,9 +394,13 @@ def GET_ACCOUNT_STREAMS(owner_id):
         print aired
 
         info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
-        addStream(name,'/live_now',name,icon,fanart,event_id,owner_id,info)
+        #addStream(name,'/live_now',name,icon,fanart,event_id,owner_id,info)
+        upcoming_streams.append([name,'/live_now',name,icon,fanart,event_id,owner_id,info])
 
-    addDir('[B][I][COLOR='+SECTION_COLOR+']Past Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
+    for stream in reversed(upcoming_streams):
+        addStream(stream[0],stream[1],stream[2],stream[3],stream[4],stream[5],stream[6],stream[7])
+
+    addDir('[B][I][COLOR='+SECTION_COLOR+']Archived Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
     for event in json_source['past_events']['data']:         
         name = event['full_name'].encode('utf-8')
         icon = event['logo']['url'].encode('utf-8')
@@ -426,14 +430,14 @@ def GET_ACCOUNT_STREAMS(owner_id):
 
 def LOGIN():
     #Check if username and password are provided
-    if USERNAME == '':
-        global USERNAME
+    global USERNAME
+    if USERNAME == '':        
         dialog = xbmcgui.Dialog()
         USERNAME = dialog.input('Please enter your username', type=xbmcgui.INPUT_ALPHANUM)        
         settings.setSetting(id='username', value=USERNAME)
 
-    if PASSWORD == '':
-        global PASSWORD
+    global PASSWORD
+    if PASSWORD == '':        
         dialog = xbmcgui.Dialog()
         PASSWORD = dialog.input('Please enter your password', type=xbmcgui.INPUT_ALPHANUM, option=xbmcgui.ALPHANUM_HIDE_INPUT)
         settings.setSetting(id='password', value=PASSWORD)
