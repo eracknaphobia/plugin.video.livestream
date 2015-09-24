@@ -51,8 +51,14 @@ def LIST_STREAMS():
 
             owner_name = name = event['owner']['full_name'].encode('utf-8')
             full_name = event['full_name'].encode('utf-8')
-            name = owner_name + ' - ' + full_name
-            icon = event['logo']['url']
+            name = owner_name + ' - ' + full_name            
+            icon = None
+            fanart = None
+            try:
+                icon = event['logo']['url'].encode('utf-8')           
+                fanart = event['background_image']['url']
+            except:
+                pass
 
             #2013-03-26T14:28:00.000Z
             pattern = "%Y-%m-%dT%H:%M:%S.000Z"
@@ -76,7 +82,7 @@ def LIST_STREAMS():
             
             if event['in_progress']:
                 name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
-                live_streams.append([name,icon,event_id,owner_id,info])
+                live_streams.append([name,icon,event_id,owner_id,info,fanart])
             else:
 
                 if my_time < event_end:                
@@ -84,18 +90,18 @@ def LIST_STREAMS():
                     start_date = datetime.strftime(utc_to_local(start_date),xbmc.getRegion('dateshort')+' '+xbmc.getRegion('time').replace('%H%H','%H').replace(':%S',''))
                     info['plot'] = "Starting at: "+str(start_date)
                     #name = name + ' ' + start_date
-                    upcoming_streams.append([name,icon,event_id,owner_id,info])
+                    upcoming_streams.append([name,icon,event_id,owner_id,info,fanart])
         except:
             pass
 
     
     for stream in  sorted(live_streams, key=lambda tup: tup[0]):        
-        addStream(stream[0],'/live_now',stream[0],stream[1],FANART,stream[2],stream[3],stream[4])    
+        addStream(stream[0],'/live_now',stream[0],stream[1],stream[5],stream[2],stream[3],stream[4])    
         #addStream(name,link_url,title,iconimage,fanart=None,event_id=None,owner_id=None,info=None)        
 
 
     for stream in  sorted(upcoming_streams, key=lambda tup: tup[0]):
-        addDir(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3],stream[4])            
+        addDir(stream[0],'/live_now',101,stream[1],stream[5],stream[2],stream[3],stream[4])            
     
 
 
@@ -364,12 +370,18 @@ def GET_ACCOUNT_STREAMS(owner_id):
     json_source = GET_JSON_FILE(url)
     
 
-    addDir('[B][I][COLOR='+SECTION_COLOR+']Upcoming Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
+    addDir('[B][I][COLOR='+SECTION_COLOR+']Live / Upcoming Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
     for event in json_source['upcoming_events']['data']:         
         name = event['full_name'].encode('utf-8')
-        icon = event['logo']['url'].encode('utf-8')
-        event_id = str(event['id'])
+        icon = None
+        fanart = None
+        try:
+            icon = event['logo']['url'].encode('utf-8')           
+            fanart = event['background_image']['url']
+        except:
+            pass
 
+        event_id = str(event['id'])
         start_time = str(event['start_time'])                        
         duration = 0
         try:
@@ -382,13 +394,20 @@ def GET_ACCOUNT_STREAMS(owner_id):
         print aired
 
         info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
-        addStream(name,'/live_now',name,icon,FANART,event_id,owner_id,info)
+        addStream(name,'/live_now',name,icon,fanart,event_id,owner_id,info)
 
     addDir('[B][I][COLOR='+SECTION_COLOR+']Past Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
     for event in json_source['past_events']['data']:         
         name = event['full_name'].encode('utf-8')
         icon = event['logo']['url'].encode('utf-8')
         event_id = str(event['id'])
+        icon = None
+        fanart = None
+        try:
+            icon = event['logo']['url'].encode('utf-8')           
+            fanart = event['background_image']['url']
+        except:
+            pass
 
         start_time = str(event['start_time'])                        
         duration = 0
@@ -402,7 +421,7 @@ def GET_ACCOUNT_STREAMS(owner_id):
         print aired
 
         info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
-        addStream(name,'/live_now',name,icon,FANART,event_id,owner_id,info)
+        addStream(name,'/live_now',name,icon,fanart,event_id,owner_id,info)
 
 
 def LOGIN():
@@ -487,8 +506,17 @@ def addStream(name,link_url,title,iconimage,fanart=None,event_id=None,owner_id=N
         u = u+"&event_id="+urllib.quote_plus(event_id)
     if owner_id != None:
         u = u+"&owner_id="+urllib.quote_plus(owner_id) 
-    liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage,) 
-    liz.setProperty('fanart_image',fanart)
+
+    if iconimage != None:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+    else:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+    
+    if fanart != None:
+        liz.setProperty('fanart_image', fanart)
+    else:
+        liz.setProperty('fanart_image', FANART)
+
     liz.setProperty("IsPlayable", "true")
     liz.setInfo( type="Video", infoLabels={ "Title": title } )
     if info != None:
@@ -500,10 +528,14 @@ def addStream(name,link_url,title,iconimage,fanart=None,event_id=None,owner_id=N
 
 def addLink(name,url,title,iconimage,fanart=None):
     ok=True
-    liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
-    liz.setProperty('fanart_image',FANART)
+    liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)    
     liz.setProperty("IsPlayable", "true")
     liz.setInfo( type="Video", infoLabels={ "Title": title } )
+    if iconimage != None:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+    else:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+
     if fanart != None:
         liz.setProperty('fanart_image', fanart)
     else:
@@ -519,7 +551,12 @@ def addDir(name,url,mode,iconimage,fanart=None,event_id=None,owner_id=None,info=
         u = u+"&event_id="+urllib.quote_plus(event_id)
     if owner_id != None:
         u = u+"&owner_id="+urllib.quote_plus(owner_id)
-    liz=xbmcgui.ListItem(name, iconImage=ICON, thumbnailImage=iconimage)
+
+    if iconimage != None:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+    else:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+
     liz.setInfo( type="Video", infoLabels={ "Title": name } )
 
     if fanart != None:
