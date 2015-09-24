@@ -21,7 +21,8 @@ FANART = ROOTDIR+"/fanart.jpg"
 IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_4 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12F70 Safari/600.1.4'
 LIVESTREAM_UA = 'Livestream/3.8.12/Nemiroff (iPhone; iOS 8.4; Scale/2.00)'
 SEARCH_HITS = '25'
-    
+LIVE_COLOR = 'FF00B7EB'
+SECTION_COLOR = 'FFFFFF66'
 
 
 
@@ -180,11 +181,11 @@ def SEARCH_LIVE():
         for hits in json_source['results']: 
             i = i + 1
             if i == 1:
-                addDir('[B][I]Events[/B][/I]','/accounts',999,ICON,FANART)
+                addDir('[B][I][COLOR='+SECTION_COLOR+']Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
             elif i == 2:
-                addDir('[B][I]Accounts[/B][/I]','/accounts',999,ICON,FANART)
+                addDir('[B][I][COLOR='+SECTION_COLOR+']Accounts[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
             elif i == 3:
-                addDir('[B][I]Videos[/B][/I]','/accounts',999,ICON,FANART)
+                addDir('[B][I][COLOR='+SECTION_COLOR+']Videos[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
 
             for event in hits['hits']:                
                 try:                                         
@@ -357,12 +358,13 @@ def STREAM_QUALITY_SELECT(owner_id,event_id,icon):
         dialog = xbmcgui.Dialog() 
         ok = dialog.ok('Streams Not Found', msg)
 
+
 def GET_ACCOUNT_STREAMS(owner_id):    
     url = 'https://api.new.livestream.com/accounts/'+owner_id    
     json_source = GET_JSON_FILE(url)
     
 
-    addDir('[B][I]Upcoming Events[/B][/I]','/accounts',999,ICON,FANART)
+    addDir('[B][I][COLOR='+SECTION_COLOR+']Upcoming Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
     for event in json_source['upcoming_events']['data']:         
         name = event['full_name'].encode('utf-8')
         icon = event['logo']['url'].encode('utf-8')
@@ -382,7 +384,7 @@ def GET_ACCOUNT_STREAMS(owner_id):
         info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
         addStream(name,'/live_now',name,icon,FANART,event_id,owner_id,info)
 
-    addDir('[B][I]Past Events[/B][/I]','/accounts',999,ICON,FANART)
+    addDir('[B][I][COLOR='+SECTION_COLOR+']Past Events[/COLOR][/B][/I]','/accounts',999,ICON,FANART)
     for event in json_source['past_events']['data']:         
         name = event['full_name'].encode('utf-8')
         icon = event['logo']['url'].encode('utf-8')
@@ -402,8 +404,9 @@ def GET_ACCOUNT_STREAMS(owner_id):
         info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':duration,'aired':aired}
         addStream(name,'/live_now',name,icon,FANART,event_id,owner_id,info)
 
+
 def LOGIN():
-    #Check if username and password is provided
+    #Check if username and password are provided
     if USERNAME == '':
         global USERNAME
         dialog = xbmcgui.Dialog()
@@ -444,9 +447,11 @@ def LOGIN():
 
         access_token = json_source['access_token']
         user_id = str(json_source['user_data']['id'])
-        
-        
-        req = urllib2.Request('https://api.new.livestream.com/accounts/'+user_id+'/following_events?&older=50&newer=50')
+
+        ########################
+        #Get Accounts Following
+        ########################
+        req = urllib2.Request('https://api.new.livestream.com/accounts/'+user_id+'/')
         req.add_header("Accept", "*/*")
         req.add_header("Accept-Language", "en-US,en;q=1")
         req.add_header("Accept-Encoding", "gzip, deflate")
@@ -454,59 +459,25 @@ def LOGIN():
         #("Connection", "keep-alive"),
         req.add_header("Authorization", "Bearer "+access_token)
         req.add_header("User-Agent", LIVESTREAM_UA)
-        
+
         response = urllib2.urlopen(req)                    
         json_source = json.load(response)    
         response.close()
-        
-        #print json_source
-        live_streams = []
-        archived_streams = []
-        for event in json_source['data']: 
-            try:           
-                event_id = str(event['id'])
-                owner_id = str(event['owner_account_id'])
 
-                owner_name = name = event['owner']['full_name'].encode('utf-8')
-                full_name = event['full_name'].encode('utf-8')
-                name = owner_name + ' - ' + full_name
-                icon = event['logo']['url']
-
-                #2013-03-26T14:28:00.000Z
-                pattern = "%Y-%m-%dT%H:%M:%S.000Z"
-                start_time = str(event['start_time'])
-                end_time =  str(event['end_time'])
-                current_time =  datetime.utcnow().strftime(pattern) 
-                my_time = int(time.mktime(time.strptime(current_time, pattern)))             
-                event_end = int(time.mktime(time.strptime(end_time, pattern)))
-
-                length = 0
-                try:
-                    length = int(item['duration'])
-                except:        
-                    pass
-
-                print name
-                print start_time         
-                aired = start_time[0:4]+'-'+start_time[5:7]+'-'+start_time[8:10]
-                print aired
-
-                info = {'plot':'','tvshowtitle':'Livestream','title':name,'originaltitle':name,'duration':length,'aired':aired}
-                
-                if event['in_progress']:
-                    name = '[COLOR=FF00B7EB]'+name+'[/COLOR]'
-                    live_streams.append([name,icon,event_id,owner_id,info])
-                else:               
-                    archived_streams.append([name,icon,event_id,owner_id,info])
+        for account in json_source['following']['data']:
+            name = account['full_name'].encode('utf-8') 
+            owner_id = str(account['id'])
+            icon = None
+            fanart = None
+            try:
+                icon = account['picture']['url']            
+                fanart = account['background_image']['url']
             except:
                 pass
 
+            addDir(name,'/accounts',105,icon,fanart,None,owner_id)
         
-        for stream in  sorted(live_streams, key=lambda tup: tup[0]):        
-            addStream(stream[0],'/live_now',stream[0],stream[1],FANART,stream[2],stream[3],stream[4])    
 
-        for stream in  sorted(archived_streams, key=lambda tup: tup[0]):
-            addStream(stream[0],'/live_now',101,stream[1],FANART,stream[2],stream[3],stream[4])   
 
 
 def addStream(name,link_url,title,iconimage,fanart=None,event_id=None,owner_id=None,info=None):
@@ -550,6 +521,7 @@ def addDir(name,url,mode,iconimage,fanart=None,event_id=None,owner_id=None,info=
         u = u+"&owner_id="+urllib.quote_plus(owner_id)
     liz=xbmcgui.ListItem(name, iconImage=ICON, thumbnailImage=iconimage)
     liz.setInfo( type="Video", infoLabels={ "Title": name } )
+
     if fanart != None:
         liz.setProperty('fanart_image', fanart)
     else:
