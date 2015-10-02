@@ -1,6 +1,6 @@
 v2015.10.2
 - Added play best stream automatically setting
-- Changed code to accomodate for 1 or more streams per event for both live and archive
+- Changed code to accommodate for 1 or more streams per event for both live and archive
 - Added description to stream info
 
 v2015.9.22
