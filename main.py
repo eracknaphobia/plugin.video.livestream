@@ -279,7 +279,15 @@ def GET_STREAM(owner_id,event_id,video_id):
                 pass
             addStream('[COLOR='+LIVE_COLOR+'/]'+event_info['name']+'[/COLOR]','/live_now',event_info['name'],icon,event_info['fanart'],event_id,owner_id,event_info['info'],'LIVE')
        
-        for event in json_source['feed']['data']:                    
+        #Get the total number of feeds and request all of them to display
+        feed_total = str(json_source['feed']['total'])
+        url = 'https://api.new.livestream.com/accounts/'+owner_id+'/events/'+event_id+'/feed/?maxItems='+feed_total
+        req = urllib2.Request(url)       
+        req.add_header('User-Agent', IPHONE_UA)
+        response = urllib2.urlopen(req)                    
+        json_source = json.load(response)
+        response.close()
+        for event in json_source['data']:                         
             try:
                 event_info = EXTRACT_EVENT_INFO(event['data'])                    
                 addStream(event_info['name'],'/live_now',event_info['name'],event_info['icon'],event_info['fanart'],event_id,owner_id,event_info['info'],event_info['broadcast_id'])

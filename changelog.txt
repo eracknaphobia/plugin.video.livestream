@@ -1,3 +1,6 @@
+v2015.10.21
+- Get all feeds from event
+
 v2015.10.2
 - Added play best stream automatically setting
 - Changed code to accommodate for 1 or more streams per event for both live and archive
