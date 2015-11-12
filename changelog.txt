@@ -1,7 +1,10 @@
 v2015.10.21
+<<<<<<< HEAD
 - Bug fix
 
 v2015.10.21
+=======
+>>>>>>> origin/master
 - Get all feeds from event
 
 v2015.10.2
