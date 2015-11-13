@@ -370,8 +370,7 @@ def STREAM_QUALITY_SELECT(m3u8_url):
             i = 0
             for stream in stream_title:
                 stream = stream.partition("x")[0]
-<<<<<<< HEAD
-                print stream                
+                print stream
                 print stream[1:]
                 try:
                     if int(stream[1:]) > temp_qlty:
@@ -379,13 +378,7 @@ def STREAM_QUALITY_SELECT(m3u8_url):
                         ret = i
                 except:
                     pass
-=======
-                print stream
-                print stream[1:]
-                if int(stream[1:]) > temp_qlty:
-                    temp_qlty = int(stream[1:])
-                    ret = i
->>>>>>> origin/master
+                    
                 i=i+1
         else:            
             dialog = xbmcgui.Dialog() 
@@ -393,11 +386,7 @@ def STREAM_QUALITY_SELECT(m3u8_url):
         
         if ret >=0:
             listitem = xbmcgui.ListItem(path=stream_url[ret])
-<<<<<<< HEAD
-            xbmcplugin.setResolvedUrl(addon_handle, True, listitem)              
-=======
             xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
->>>>>>> origin/master
         else:
             sys.exit()
     else:
@@ -437,15 +426,9 @@ def GET_ACCOUNT_STREAMS(owner_id):
     #Past videos are displayed by date descending
     for event in event_list:        
         addDir(event['name'],'/videos',101,event['icon'],event['fanart'],event['event_id'],owner_id,event['info'])            
-<<<<<<< HEAD
 
 
 
-=======
-
-
-
->>>>>>> origin/master
 def EXTRACT_EVENT_INFO(event):
     
     event_info = {}             
@@ -502,17 +485,6 @@ def EXTRACT_EVENT_INFO(event):
 
     return event_info
 
-<<<<<<< HEAD
-
-
-def LOGIN():
-    #Check if username and password are provided
-    global USERNAME
-    if USERNAME == '':        
-        dialog = xbmcgui.Dialog()
-        USERNAME = dialog.input('Please enter your username', type=xbmcgui.INPUT_ALPHANUM)        
-        settings.setSetting(id='username', value=USERNAME)
-=======
 
 
 def LOGIN():
@@ -588,78 +560,8 @@ def LOGIN():
             addDir(name,'/accounts',105,icon,fanart,None,owner_id)
         
 
->>>>>>> origin/master
-
-    global PASSWORD
-    if PASSWORD == '':        
-        dialog = xbmcgui.Dialog()
-        PASSWORD = dialog.input('Please enter your password', type=xbmcgui.INPUT_ALPHANUM, option=xbmcgui.ALPHANUM_HIDE_INPUT)
-        settings.setSetting(id='password', value=PASSWORD)
-
-<<<<<<< HEAD
-    if USERNAME != '' and PASSWORD != '':
-        
-        url = 'https://oauth.new.livestream.com/oauth/access_token/'
-        req = urllib2.Request(url)
-        req.add_header("Accept", "*/*")
-        req.add_header("Origin", "http://livestream.com")
-        req.add_header("Accept-Language", "en-US,en;q=0.8")
-        req.add_header("Accept-Encoding", "gzip, deflate")
-        req.add_header("X-Algolia-Application-Id", "7KJECL120U")
-        req.add_header("X-Algolia-API-Key", "98f12273997c31eab6cfbfbe64f99d92")
-        req.add_header("Content-type", "application/x-www-form-urlencoded; charset=utf-8")
-        req.add_header("Connection", "keep-alive")
-        req.add_header("User-Agent", LIVESTREAM_UA)                
-        
-        
-        body = urllib.urlencode({'grant_type' : 'password',
-                                 'username' : USERNAME,
-                                 'password' : PASSWORD,
-                                 'client_id' : '289ef33f7caa0c346c3025ff518ada99',
-                                 'client_secret' : '511901d55797644f2bf78716518adaa3'
-                                 })
-
-        response = urllib2.urlopen(req, body)
-        json_source = json.load(response)    
-        response.close()
-
-        access_token = json_source['access_token']
-        user_id = str(json_source['user_data']['id'])
-
-        ########################
-        #Get Accounts Following
-        ########################
-        req = urllib2.Request('https://api.new.livestream.com/accounts/'+user_id+'/')
-        req.add_header("Accept", "*/*")
-        req.add_header("Accept-Language", "en-US,en;q=1")
-        req.add_header("Accept-Encoding", "gzip, deflate")
-        #('If-None-Match', 'W/"xyKvCBoIJXQ9Tu6ij5hL1g=='),                                                
-        #("Connection", "keep-alive"),
-        req.add_header("Authorization", "Bearer "+access_token)
-        req.add_header("User-Agent", LIVESTREAM_UA)
-
-        response = urllib2.urlopen(req)                    
-        json_source = json.load(response)    
-        response.close()
-
-        for account in json_source['following']['data']:
-            name = account['full_name'].encode('utf-8') 
-            owner_id = str(account['id'])
-            icon = None
-            fanart = None
-            try:
-                icon = account['picture']['url']            
-                fanart = account['background_image']['url']
-            except:
-                pass
-
-            addDir(name,'/accounts',105,icon,fanart,None,owner_id)
-        
 
 
-
-=======
->>>>>>> origin/master
 def addStream(name,link_url,title,iconimage,fanart=None,event_id=None,owner_id=None,info=None,video_id=None):
     ok=True
     u=sys.argv[0]+"?url="+urllib.quote_plus(link_url)+"&mode="+str(104)+"&name="+urllib.quote_plus(name)
