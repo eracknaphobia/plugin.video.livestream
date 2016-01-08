@@ -1,3 +1,6 @@
+v2016.1.8
+- Bumped kodi python version
+
 v2015.11.12
 - Bug fix
 
