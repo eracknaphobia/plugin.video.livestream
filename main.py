@@ -58,24 +58,34 @@ print "Video ID:"+str(video_id)
 
 if mode==None or url==None or len(url)<1:    
     categories()          
+
 elif mode==100:                
     getCategories()
+
 elif mode==101:        
     getStream(owner_id,event_id,video_id)
+
 elif mode==102:
     searchLive()
+
 elif mode==104:
     getStream(owner_id,event_id,video_id)
+
 elif mode==105:
     getAccountStreams(owner_id)
 
 elif mode==106:
     getCategoryEvents(cat_info)
 
+elif mode==107:
+    getHistory()
+
 elif mode==150:
     login()
+
 elif mode==160:
     manualEvent()
+
 elif mode==999:
     sys.exit()
 

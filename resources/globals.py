@@ -22,8 +22,8 @@ AUTO_PLAY = str(xbmcaddon.Addon().getSetting(id="auto_play"))
 #Localisation
 local_string = xbmcaddon.Addon().getLocalizedString
 ROOTDIR = xbmcaddon.Addon().getAddonInfo('path')
-ICON = os.path.join(ROOTDIR,"/icon.png")
-FANART = os.path.join(ROOTDIR,"/fanart.jpg")
+ICON = os.path.join(ROOTDIR,"icon.png")
+FANART = os.path.join(ROOTDIR,"fanart.jpg")
 
 SEARCH_HITS = '25'
 LIVE_COLOR = 'FF00B7EB'
@@ -39,9 +39,10 @@ API_URL = 'https://api.new.livestream.com'
 
 
 def categories():                    
-    addDir('Browse by Category','/livestream',100,ICON,FANART)
-    addDir('Search','/search',102,ICON,FANART)
+    addDir('Browse by Category','/livestream',100,ICON,FANART)    
     addDir('Following','/login',150,ICON,FANART)
+    addDir('Search','/search',102,ICON,FANART)
+    addDir('History','/history',107,ICON,FANART)
     addDir('Manually Enter','/manual',160,ICON,FANART)
          
 
@@ -162,6 +163,47 @@ def search():
 
     return json_source
 
+def getHistory():
+    addon_profile_path = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
+    fname = os.path.join(addon_profile_path, 'search_history.txt')
+    if not os.path.isfile(fname):
+        if not os.path.exists(addon_profile_path):
+            os.makedirs(addon_profile_path)         
+        new_device_id =str(uuid.uuid1())
+        search_file = open(fname,'w')   
+        search_file.write(new_device_id)
+        search_file.close()
+
+    fname = os.path.join(addon_profile_path, 'search_history.txt')
+    search_file = open(fname,'r') 
+    device_id = search_file.readline()
+    search_file.close()
+    
+    return device_id
+
+
+def addHistory(search_text):
+    addon_profile_path = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
+    fname = os.path.join(addon_profile_path, 'search_history.txt')
+    if not os.path.isfile(fname):
+        if not os.path.exists(addon_profile_path):
+            os.makedirs(addon_profile_path)
+        else:
+            lines = []
+            with open(fname) as file:
+                for line in file:
+                    line = line.strip()
+                    lines.append(line)  
+        
+    lines.insert(0,search_text)    
+    i=0
+    for line in lines:
+        search_file.write(line)
+        search_file.write('\n')
+        i+=1
+        if i >= 9: break
+
+    search_file.close()
 
 def searchLive():
     json_source = search()
