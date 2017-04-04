@@ -66,7 +66,8 @@ elif mode==101:
     getStream(owner_id,event_id,video_id)
 
 elif mode==102:
-    searchLive()
+    #searchLive()
+    search()
 
 elif mode==104:
     getStream(owner_id,event_id,video_id)

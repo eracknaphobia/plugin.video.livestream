@@ -14,7 +14,6 @@ API_KEY = '98f12273997c31eab6cfbfbe64f99d92'
 APP_ID = '7KJECL120U'
 
 #Settings
-#settings = xbmcaddon.Addon()
 USERNAME = str(xbmcaddon.Addon().getSetting(id="username"))
 PASSWORD = str(xbmcaddon.Addon().getSetting(id="password"))
 AUTO_PLAY = str(xbmcaddon.Addon().getSetting(id="auto_play"))
@@ -42,7 +41,7 @@ def categories():
     addDir('Browse by Category','/livestream',100,ICON,FANART)    
     addDir('Following','/login',150,ICON,FANART)
     addDir('Search','/search',102,ICON,FANART)
-    addDir('History','/history',107,ICON,FANART)
+    addDir('Search History','/history',107,ICON,FANART)
     addDir('Manually Enter','/manual',160,ICON,FANART)
          
 
@@ -134,10 +133,12 @@ def getCategoryEvents(cat_info):
     
 
 
-def search():    
-    search_txt = ''
-    dialog = xbmcgui.Dialog()
-    search_txt = dialog.input('Enter search text', type=xbmcgui.INPUT_ALPHANUM)
+def search(search_txt=''):    
+    if search_txt == '':
+        dialog = xbmcgui.Dialog()
+        search_txt = dialog.input('Enter search text', type=xbmcgui.INPUT_ALPHANUM)
+        if search_txt == '': sys.exit()
+        addHistory(search_txt)        
 
     json_source = ''
     if search_txt != '':
@@ -160,53 +161,58 @@ def search():
         response = urllib2.urlopen(req,json_search)
         json_source = json.load(response)        
         response.close()
+    
+    searchResults(json_source)
 
-    return json_source
 
 def getHistory():
-    addon_profile_path = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
-    fname = os.path.join(addon_profile_path, 'search_history.txt')
-    if not os.path.isfile(fname):
-        if not os.path.exists(addon_profile_path):
-            os.makedirs(addon_profile_path)         
-        new_device_id =str(uuid.uuid1())
-        search_file = open(fname,'w')   
-        search_file.write(new_device_id)
-        search_file.close()
-
-    fname = os.path.join(addon_profile_path, 'search_history.txt')
-    search_file = open(fname,'r') 
-    device_id = search_file.readline()
-    search_file.close()
-    
-    return device_id
-
-
-def addHistory(search_text):
+    lines = []
     addon_profile_path = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
     fname = os.path.join(addon_profile_path, 'search_history.txt')
     if not os.path.isfile(fname):
         if not os.path.exists(addon_profile_path):
             os.makedirs(addon_profile_path)
-        else:
-            lines = []
-            with open(fname) as file:
-                for line in file:
-                    line = line.strip()
-                    lines.append(line)  
+    else:        
+        with open(fname) as file:
+            for line in file:
+                line = line.strip()
+                lines.append(line)  
+
+    dialog = xbmcgui.Dialog()
+    ret = dialog.select('Search History', lines)
+    if ret > -1:
+        search_txt = lines[ret]    
+        search(search_txt)
+    else:
+        sys.exit()
+
+
+def addHistory(search_text):
+    lines = []
+    addon_profile_path = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
+    fname = os.path.join(addon_profile_path, 'search_history.txt')
+    if not os.path.isfile(fname):
+        if not os.path.exists(addon_profile_path):
+            os.makedirs(addon_profile_path)
+    else:        
+        with open(fname) as file:
+            for line in file:
+                line = line.strip()
+                lines.append(line)  
         
+    search_file = open(fname,'w')   
     lines.insert(0,search_text)    
     i=0
     for line in lines:
         search_file.write(line)
         search_file.write('\n')
         i+=1
-        if i >= 9: break
+        if i >= 10: break
 
     search_file.close()
 
-def searchLive():
-    json_source = search()
+
+def searchResults(json_source):
     if json_source != '':
         i = 0
         
