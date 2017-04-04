@@ -1,3 +1,7 @@
+2017.4.3
+- Added Search History
+- Updated icon image
+
 2017.4.2
 - Updated api variables
 - Improved following section
