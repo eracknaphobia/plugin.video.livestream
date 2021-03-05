@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.livestream" name="Livestream" version="2017.4.3" provider-name="eracknaphobia">
   <requires>
-   <import addon="xbmc.python" version="2.19.0"/>      
+<!--   <import addon="xbmc.python" version="2.19.0"/>-->
+    <import addon="xbmc.python" version="3.0.0"/>
+    <import addon="script.module.requests" />
+    <import addon="script.module.kodi-six" />
   </requires>
   <extension point="xbmc.python.pluginsource" library="main.py">
         <provides>video</provides>
@@ -16,5 +19,9 @@
     <forum>http://forum.kodi.tv/showthread.php?tid=230355</forum>
     <website>https://livestream.com/</website>
     <source>https://github.com/eracknaphobia/plugin.video.livestream</source>
+    <assets>
+        <icon>icon.png</icon>
+        <fanart>fanart.jpg</fanart>
+    </assets>
   </extension>
 </addon>
