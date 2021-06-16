@@ -1,5 +1,5 @@
 import sys
-from kodi_six import xbmc, xbmcvfs, xbmcplugin, xbmcgui, xbmcaddon
+from kodi_six import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 import re, os, time
 from datetime import datetime, timedelta
 #import urllib, urllib2
