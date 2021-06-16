@@ -17,7 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "#30100"
-msgid "General"
+msgid "Login"
 msgstr ""
 
 msgctxt "#30140"
